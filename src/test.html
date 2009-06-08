@@ -15,8 +15,8 @@
     ometa LuaTranslator {
       trans      = [:t apply(t):ans]     -> ans,
       curlyTrans = [#begin curlyTrans:r] -> r
-                 | [#begin trans*:rs]    -> ('{' + rs.join(';') + '}')
-                 | trans:r               -> ('{' + r + '}'),
+                 | [#begin trans*:rs]    -> ('do ' + rs.join(';') + ' end')
+                 | trans:r               -> ('do ' + r + ' end'),
 
       this                                                  -> 'this',
       break                                                 -> 'break',
@@ -49,9 +49,9 @@
                )*:xs                                        -> ('{' + xs.join('') + '}'),
       func     :args curlyTrans:body                        -> ('(function (' + args.join(',') + ')' + body + ')'),
       call     trans:fn trans*:args                         -> (fn + '(' + args.join(',') + ')'),
-      send     :msg trans:recv trans*:args                  -> (recv + '.' + msg + '(' + args.join(',') + ')'),
-      new      :cls trans*:args                             -> ('new ' + cls + '(' + args.join(',') + ')'),
-      var      :name trans:val                              -> ('var ' + name + '=' + val),
+      send     :msg trans:recv trans*:args                  -> (recv + ':' + msg + '(' + args.join(',') + ')'),
+      new      :cls trans*:args                             -> (cls + ':new(' + args.join(',') + ')'),
+      var      :name trans:val                              -> ('local ' + name + '=' + val),
       throw    trans:x                                      -> ('throw ' + x),
       try      curlyTrans:x :name curlyTrans:c curlyTrans:f -> ('try ' + x + 'catch(' + name + ')' + c + 'finally' + f),
       json     trans*:props                                 -> ('({' + props.join(',') + '})'),
