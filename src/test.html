@@ -33,21 +33,21 @@
       preop    :op trans:x                                  -> (op + x),
       postop   :op trans:x                                  -> (x + op),
       return   trans:x                                      -> ('return ' + x),
-      with     trans:x curlyTrans:s                         -> ('with(' + x + ')' + s),
-      if       trans:cond curlyTrans:t curlyTrans:e         -> ('if(' + cond + ')' + t + 'else' + e),
+      with     trans:x curlyTrans:s                         -> ('with (' + x + ')' + s),
+      if       trans:cond curlyTrans:t curlyTrans:e         -> ('if (' + cond + ') ' + t + ' else ' + e),
       condExpr trans:cond trans:t trans:e                   -> ('(' + cond + '?' + t + ':' + e + ')'),
-      while    trans:cond curlyTrans:body                   -> ('while(' + cond + ')' + body),
-      doWhile  curlyTrans:body trans:cond                   -> ('do' + body + 'while(' + cond + ')'),
+      while    trans:cond curlyTrans:body                   -> ('while (' + cond + ') ' + body),
+      doWhile  curlyTrans:body trans:cond                   -> ('do ' + body + ' while (' + cond + ')'),
       for      trans:init trans:cond trans:upd
-               curlyTrans:body                              -> ('for(' + init + ';' + cond + ';' + upd + ')' + body),
-      forIn    trans:x trans:arr curlyTrans:body            -> ('for(' + x + ' in ' + arr + ')' + body),
+               curlyTrans:body                              -> ('for (' + init + ';' + cond + ';' + upd + ')' + body),
+      forIn    trans:x trans:arr curlyTrans:body            -> ('for (' + x + ' in ' + arr + ')' + body),
       begin    trans:x end                                  -> x,
       begin    (trans:x
                   ( (?(x[x.length - 1] == '}') | end) -> x
                   | empty                             -> (x  + ';')
                   )
                )*:xs                                        -> ('{' + xs.join('') + '}'),
-      func     :args curlyTrans:body                        -> ('(function (' + args.join(',') + ')' + body + ')'),
+      func     :args curlyTrans:body                        -> ('(function (' + args.join(',') + ') ' + body + ' end)'),
       call     trans:fn trans*:args                         -> (fn + '(' + args.join(',') + ')'),
       send     :msg trans:recv trans*:args                  -> (recv + ':' + msg + '(' + args.join(',') + ')'),
       new      :cls trans*:args                             -> (cls + ':new(' + args.join(',') + ')'),
@@ -55,10 +55,10 @@
       throw    trans:x                                      -> ('throw ' + x),
       try      curlyTrans:x :name curlyTrans:c curlyTrans:f -> ('try ' + x + 'catch(' + name + ')' + c + 'finally' + f),
       json     trans*:props                                 -> ('({' + props.join(',') + '})'),
-      binding  :name trans:val                              -> (name.toProgramString() + ': ' + val),
-      switch   trans:x trans*:cases                         -> ('switch(' + x + '){' + cases.join(';') + '}'),
-      case     trans:x trans:y                              -> ('case ' + x + ': '+ y),
-      default          trans:y                              -> ('default: ' + y)
+      binding  :name trans:val                              -> ('[' + name.toProgramString() + ']= ' + val),
+      switch   trans:x trans*:cases                         -> ('(setmetatable({' + cases.join(',') + '}), {__index = function(t) return t.__default__ end})['+x+']()'),
+      case     trans:x trans:y                              -> ('[' + x + ']=function() '+ y + ' end'),
+      default          trans:y                              -> ('["__default__"]=function() ' + y + ' end')
     }
     function translateCode(s) {
       var translationError = function(m, i) { alert("Translation error - please tell Alex about this!"); throw fail },
@@ -66,15 +66,16 @@
       return LuaTranslator.match(tree, "trans", undefined, translationError)
     }
     $('workspaceForm').source.value = translateCode(
-      "function fib(n) {"
-      + " var a = { b: 5, foo: function () { return a.b; } };"
-      + "	if (n <= 1) {"
+        " function fib(n) {"
+      + "   var a = { b: 5, foo: function () { return a.b; } };"
+      + "   switch ( 3 ) { case 1: break; case 2: break; default: break; }"
+      + "   if (n <= 1) {"
       + "     a.foo();"
-      + "		return 1;"
-      + "	} else {"
-      + "		return fib(n-1) + fib(n-2);"
-      + "	}"
-      + "}"
+      + "     return 1;"
+      + "   } else {"
+      + "     return fib(n-1) + fib(n-2);"
+      + "   }"
+      + " }"
     );
     </script>
   </head>
