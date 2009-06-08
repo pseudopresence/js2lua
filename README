@@ -1,0 +1,5 @@
+h2. js2lua H2
+
+A translator from JavaScript to Lua. Uses the "OMeta/JS":http://www.tinlizzie.org/ometa/ library.
+
+Status: experimental
