@@ -1,0 +1,86 @@
+<html>
+  <head>
+    <script src="../lib/OMeta-JS/prototype.js"></script>
+    <script src="../lib/OMeta-JS/lib.js"></script>
+    <script src="../lib/OMeta-JS/ometa-base.js"></script>
+    <script src="../lib/OMeta-JS/parser.js"></script>
+    <script src="../lib/OMeta-JS/bs-js-compiler.js"></script>
+    <script src="../lib/OMeta-JS/bs-ometa-compiler.js"></script>
+    <script src="../lib/OMeta-JS/bs-ometa-optimizer.js"></script>
+    <script src="../lib/OMeta-JS/bs-ometa-js-compiler.js"></script>
+    <script src="../lib/OMeta-JS/ometa-script-tag.js"></script>
+  <script type="text/x-ometa-js">
+    // Grammar.matchAll: returns array of matches
+    // BS* grammars: Bootstrap
+    ometa LuaTranslator {
+      trans      = [:t apply(t):ans]     -> ans,
+      curlyTrans = [#begin curlyTrans:r] -> r
+                 | [#begin trans*:rs]    -> ('{' + rs.join(';') + '}')
+                 | trans:r               -> ('{' + r + '}'),
+
+      this                                                  -> 'this',
+      break                                                 -> 'break',
+      continue                                              -> 'continue',
+      number   :n                                           -> ('(' + n + ')'),
+      string   :s                                           -> s.toProgramString(),
+      arr      trans*:xs                                    -> ('[' + xs.join(',') + ']'),
+      unop     :op trans:x                                  -> ('(' + op + x + ')'),
+      getp     trans:fd trans:x                             -> (x + '[' + fd + ']'),
+      get      :x                                           -> x,
+      set      trans:lhs trans:rhs                          -> (lhs + '=' + rhs),
+      mset     trans:lhs :op trans:rhs                      -> (lhs + op + '=' + rhs),
+      binop    :op trans:x trans:y                          -> ('(' + x + ' ' + op + ' ' + y + ')'),
+      preop    :op trans:x                                  -> (op + x),
+      postop   :op trans:x                                  -> (x + op),
+      return   trans:x                                      -> ('return ' + x),
+      with     trans:x curlyTrans:s                         -> ('with(' + x + ')' + s),
+      if       trans:cond curlyTrans:t curlyTrans:e         -> ('if(' + cond + ')' + t + 'else' + e),
+      condExpr trans:cond trans:t trans:e                   -> ('(' + cond + '?' + t + ':' + e + ')'),
+      while    trans:cond curlyTrans:body                   -> ('while(' + cond + ')' + body),
+      doWhile  curlyTrans:body trans:cond                   -> ('do' + body + 'while(' + cond + ')'),
+      for      trans:init trans:cond trans:upd
+               curlyTrans:body                              -> ('for(' + init + ';' + cond + ';' + upd + ')' + body),
+      forIn    trans:x trans:arr curlyTrans:body            -> ('for(' + x + ' in ' + arr + ')' + body),
+      begin    trans:x end                                  -> x,
+      begin    (trans:x
+                  ( (?(x[x.length - 1] == '}') | end) -> x
+                  | empty                             -> (x  + ';')
+                  )
+               )*:xs                                        -> ('{' + xs.join('') + '}'),
+      func     :args curlyTrans:body                        -> ('(function (' + args.join(',') + ')' + body + ')'),
+      call     trans:fn trans*:args                         -> (fn + '(' + args.join(',') + ')'),
+      send     :msg trans:recv trans*:args                  -> (recv + '.' + msg + '(' + args.join(',') + ')'),
+      new      :cls trans*:args                             -> ('new ' + cls + '(' + args.join(',') + ')'),
+      var      :name trans:val                              -> ('var ' + name + '=' + val),
+      throw    trans:x                                      -> ('throw ' + x),
+      try      curlyTrans:x :name curlyTrans:c curlyTrans:f -> ('try ' + x + 'catch(' + name + ')' + c + 'finally' + f),
+      json     trans*:props                                 -> ('({' + props.join(',') + '})'),
+      binding  :name trans:val                              -> (name.toProgramString() + ': ' + val),
+      switch   trans:x trans*:cases                         -> ('switch(' + x + '){' + cases.join(';') + '}'),
+      case     trans:x trans:y                              -> ('case ' + x + ': '+ y),
+      default          trans:y                              -> ('default: ' + y)
+    }
+    function translateCode(s) {
+      var translationError = function(m, i) { alert("Translation error - please tell Alex about this!"); throw fail },
+          tree             = BSJSParser.matchAll(s, "topLevel", undefined, function(m, i) { throw fail.delegated({errorPos: i}) })
+      return LuaTranslator.match(tree, "trans", undefined, translationError)
+    }
+    $('workspaceForm').source.value = translateCode(
+      "function fib(n) {"
+      + " var a = { b: 5, foo: function () { return a.b; } };"
+      + "	if (n <= 1) {"
+      + "     a.foo();"
+      + "		return 1;"
+      + "	} else {"
+      + "		return fib(n-1) + fib(n-2);"
+      + "	}"
+      + "}"
+    );
+    </script>
+  </head>
+  <body>
+    <form id=workspaceForm>
+      <textarea cols=132 rows=24 name=source style="font-family:monaco, monospace; font-size: 10pt"></textarea>
+  </form>
+  </body>
+</html>
