@@ -18,7 +18,7 @@
                  | [#begin trans*:rs]    -> ('do ' + rs.join(';') + ' end')
                  | trans:r               -> ('do ' + r + ' end'),
 
-      this                                                  -> 'this',
+      this                                                  -> 'self',
       break                                                 -> 'break',
       continue                                              -> 'continue',
       number   :n                                           -> ('(' + n + ')'),
@@ -34,8 +34,8 @@
       postop   :op trans:x                                  -> (x + op),
       return   trans:x                                      -> ('return ' + x),
       with     trans:x curlyTrans:s                         -> ('with (' + x + ')' + s),
-      if       trans:cond curlyTrans:t curlyTrans:e         -> ('if (' + cond + ') ' + t + ' else ' + e),
-      condExpr trans:cond trans:t trans:e                   -> ('(' + cond + '?' + t + ':' + e + ')'),
+      if       trans:cond curlyTrans:t curlyTrans:e         -> ('if ' + cond + ' then ' + t + ' else ' + e),
+      condExpr trans:cond trans:t trans:e                   -> ('(' + cond + ') and (' + t + ') or (' + e + ')'),
       while    trans:cond curlyTrans:body                   -> ('while (' + cond + ') ' + body),
       doWhile  curlyTrans:body trans:cond                   -> ('do ' + body + ' while (' + cond + ')'),
       for      trans:init trans:cond trans:upd
@@ -52,7 +52,7 @@
       send     :msg trans:recv trans*:args                  -> (recv + ':' + msg + '(' + args.join(',') + ')'),
       new      :cls trans*:args                             -> (cls + ':new(' + args.join(',') + ')'),
       var      :name trans:val                              -> ('local ' + name + '=' + val),
-      throw    trans:x                                      -> ('throw ' + x),
+      throw    trans:x                                      -> ('error( ' + x + ')'),
       try      curlyTrans:x :name curlyTrans:c curlyTrans:f -> ('try ' + x + 'catch(' + name + ')' + c + 'finally' + f),
       json     trans*:props                                 -> ('({' + props.join(',') + '})'),
       binding  :name trans:val                              -> ('[' + name.toProgramString() + ']= ' + val),
